@@ -203,9 +203,7 @@ function App() {
             WELCOME TO {hotel.name.toUpperCase()}
           </span>
 
-          <h1>
-            {hotel.tagline || "Where Every Stay Feels Special"}
-          </h1>
+          <h1>Where Every Stay Feels Special</h1>
 
           <p>{hotel.description}</p>
 
