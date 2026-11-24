@@ -204,7 +204,7 @@ function App() {
           </span>
 
           <h1>
-            {hotel.tagline || "Comfort and Hospitality"}
+            {hotel.tagline || "Where Every Stay Feels Special"}
           </h1>
 
           <p>{hotel.description}</p>
