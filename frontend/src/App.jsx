@@ -3,6 +3,20 @@ import { useEffect, useState } from "react";
 import API from "./services/api";
 import "./App.css";
 
+const initialBooking = {
+  guestName: "",
+  phone: "",
+  email: "",
+  address: "",
+  paymentMode: "Cash at Hotel",
+  paymentReference: "",
+  roomType: "Deluxe Room",
+  roomNumbers: "1",
+  checkIn: "",
+  checkOut: "",
+  guests: 2
+};
+
 function App() {
   const [hotel, setHotel] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -10,15 +24,8 @@ function App() {
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const [booking, setBooking] = useState({
-    guestName: "",
-    phone: "",
-    email: "",
-    roomType: "Deluxe Room",
-    checkIn: "",
-    checkOut: "",
-    guests: 2
-  });
+  const [booking, setBooking] = useState(initialBooking);
+  const [identityProof, setIdentityProof] = useState(null);
 
   useEffect(() => {
     const fetchHotel = async () => {
@@ -83,9 +90,10 @@ function App() {
         )
       : 0;
 
-  const totalPrice = hotel && nights > 0
-    ? nights * hotel.price
-    : 0;
+  const totalPrice =
+    hotel && nights > 0
+      ? nights * hotel.price
+      : 0;
 
   const handleBooking = async (e) => {
     e.preventDefault();
@@ -111,28 +119,40 @@ function App() {
       return;
     }
 
+    if (!identityProof) {
+      setMessage("Please upload your identity proof.");
+      return;
+    }
+
     try {
       setSubmitting(true);
 
-      const response = await API.post("/bookings", {
-        ...booking,
-        hotelId: hotel._id,
-        guests: Number(booking.guests)
-      });
+      const formData = new FormData();
+
+      formData.append("hotelId", hotel._id);
+      formData.append("guestName", booking.guestName);
+      formData.append("phone", booking.phone);
+      formData.append("email", booking.email);
+      formData.append("address", booking.address);
+      formData.append("paymentMode", booking.paymentMode);
+      formData.append("paymentReference", booking.paymentReference);
+      formData.append("roomType", booking.roomType);
+      formData.append("roomNumbers", booking.roomNumbers);
+      formData.append("checkIn", booking.checkIn);
+      formData.append("checkOut", booking.checkOut);
+      formData.append("guests", String(booking.guests));
+      formData.append("identityProof", identityProof);
+
+      const response = await API.post("/bookings", formData);
 
       setMessage(
         `${response.data.message} Booking Reference: ${response.data.booking._id}`
       );
 
-      setBooking({
-        guestName: "",
-        phone: "",
-        email: "",
-        roomType: "Deluxe Room",
-        checkIn: "",
-        checkOut: "",
-        guests: 2
-      });
+      setBooking(initialBooking);
+      setIdentityProof(null);
+      e.target.reset();
+
     } catch (err) {
       console.error("Booking Error:", err);
 
@@ -176,7 +196,7 @@ function App() {
           <span className="brand-icon">P</span>
           <span>
             <strong>{hotel.name}</strong>
-            <small>COMFORT • LUXURY • HOSPITALITY</small>
+            <small>COMFORT | LUXURY | HOSPITALITY</small>
           </span>
         </a>
 
@@ -261,10 +281,7 @@ function App() {
       {/* ABOUT */}
       <section className="about-section section-padding" id="about">
         <div className="about-image">
-          <img
-            src={hotel.image}
-            alt="Hotel Palla's Pride"
-          />
+          <img src={hotel.image} alt="Hotel Palla's Pride" />
           <div className="image-caption">
             <strong>{hotel.name}</strong>
             <span>{hotel.location}</span>
@@ -306,8 +323,7 @@ function App() {
           <span className="section-label">STAY WITH US</span>
           <h2>Rooms & Accommodation</h2>
           <p>
-            Find your comfort and enjoy a relaxing stay at
-            {` ${hotel.name}.`}
+            Find your comfort and enjoy a relaxing stay at {hotel.name}.
           </p>
         </div>
 
@@ -327,9 +343,8 @@ function App() {
             </p>
 
             <div className="room-features">
-              <span>❄ Air Conditioning</span>
-              <span>⌁ Wi-Fi</span>
-              <span>♧ Room Service</span>
+              <span>Wi-Fi</span>
+              <span>Room Service</span>
             </div>
 
             <div className="room-bottom">
@@ -345,9 +360,15 @@ function App() {
             </div>
 
             <div className="room-timing">
-              <span>Check-in: <strong>{hotel.checkIn}</strong></span>
-              <span>Check-out: <strong>{hotel.checkOut}</strong></span>
-              <span>Available rooms: <strong>{hotel.availableRooms}</strong></span>
+              <span>
+                Check-in: <strong>{hotel.checkIn}</strong>
+              </span>
+              <span>
+                Check-out: <strong>{hotel.checkOut}</strong>
+              </span>
+              <span>
+                Available rooms: <strong>{hotel.availableRooms}</strong>
+              </span>
             </div>
           </div>
         </div>
@@ -368,7 +389,7 @@ function App() {
 
         <div className="facility-grid">
           {(hotel.amenities || []).map((item, index) => {
-            const icons = ["❄", "⌁", "♧", "♨", "✦", "▣"];
+            const icons = ["✦", "♧", "♨", "✧", "▣"];
 
             return (
               <div className="facility-card" key={index}>
@@ -447,13 +468,25 @@ function App() {
                 </div>
 
                 <div className="form-group">
-                  <label>Email Address</label>
+                  <label>Email Address *</label>
                   <input
                     type="email"
                     name="email"
                     placeholder="Enter your email"
                     value={booking.email}
                     onChange={handleChange}
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Address *</label>
+                  <textarea
+                    name="address"
+                    placeholder="Enter your full address"
+                    value={booking.address}
+                    onChange={handleChange}
+                    required
                   />
                 </div>
 
@@ -468,6 +501,25 @@ function App() {
                     <option value="Deluxe Room">Deluxe Room</option>
                     <option value="Suite Room">Suite Room</option>
                     <option value="Standard Room">Standard Room</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Room Number *</label>
+                  <select
+                    name="roomNumbers"
+                    value={booking.roomNumbers}
+                    onChange={handleChange}
+                    required
+                  >
+                    {Array.from(
+                      { length: hotel.totalRooms || 30 },
+                      (_, index) => index + 1
+                    ).map((room) => (
+                      <option key={room} value={room}>
+                        Room {room}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
@@ -508,6 +560,56 @@ function App() {
                   />
                 </div>
 
+                <div className="form-group">
+                  <label>Payment Mode *</label>
+                  <select
+                    name="paymentMode"
+                    value={booking.paymentMode}
+                    onChange={handleChange}
+                    required
+                  >
+                    <option value="Cash at Hotel">Cash at Hotel</option>
+                    <option value="UPI">UPI</option>
+                    <option value="Bank Transfer">Bank Transfer</option>
+                    <option value="Card at Hotel">Card at Hotel</option>
+                  </select>
+                </div>
+
+                {booking.paymentMode === "UPI" ||
+                booking.paymentMode === "Bank Transfer" ? (
+                  <div className="form-group">
+                    <label>Payment Reference</label>
+                    <input
+                      type="text"
+                      name="paymentReference"
+                      placeholder="Enter transaction reference"
+                      value={booking.paymentReference}
+                      onChange={handleChange}
+                    />
+                  </div>
+                ) : null}
+
+                <div className="form-group">
+                  <label>Identity Proof * (Image or PDF)</label>
+                  <input
+                    type="file"
+                    name="identityProof"
+                    accept=".jpg,.jpeg,.png,.webp,.pdf"
+                    onChange={(e) =>
+                      setIdentityProof(e.target.files[0] || null)
+                    }
+                    required
+                  />
+                  <small>
+                    Maximum file size: 5 MB
+                  </small>
+                  {identityProof && (
+                    <small>
+                      Selected: {identityProof.name}
+                    </small>
+                  )}
+                </div>
+
               </div>
 
               <button
@@ -515,7 +617,9 @@ function App() {
                 className="submit-booking"
                 disabled={submitting}
               >
-                {submitting ? "Submitting..." : "Submit Booking Request →"}
+                {submitting
+                  ? "Submitting..."
+                  : "Submit Booking Request →"}
               </button>
 
               {message && (
@@ -541,6 +645,11 @@ function App() {
             <div className="summary-row">
               <span>Room Type</span>
               <strong>{booking.roomType}</strong>
+            </div>
+
+            <div className="summary-row">
+              <span>Room Number</span>
+              <strong>{booking.roomNumbers}</strong>
             </div>
 
             <div className="summary-row">
